@@ -1,9 +1,9 @@
 // TODO Load from JSON file
-pub const WORLD_WIDTH: u32 = 16;
-pub const WORLD_HEIGHT: u32 = 16;
-pub const MAXIMUM_PHEROMONE_STRENGTH: u8 = 100;
-pub const DEFAULT_COLONY_SCOUT_SIZE: u8 = 100;
-pub const DEFAULT_COLONY_WORKER_SIZE: u8 = 100;
-pub const DEFAULT_COLONY_SPAWN_RATE: u8 = 10;
+pub const WORLD_WIDTH: u16 = 32;
+pub const WORLD_HEIGHT: u16 = 32;
+pub const MAXIMUM_PHEROMONE_STRENGTH: u8 = 10;
+pub const DEFAULT_COLONY_SCOUT_SIZE: u8 = 10;
+pub const DEFAULT_COLONY_WORKER_SIZE: u8 = 10;
+pub const DEFAULT_COLONY_SPAWN_RATE: u8 = 2;
 pub const DEFAULT_RESOURCE_SIZE: u8 = 100;
-pub const DEBUG_MODE: bool = true;
+pub const DEBUG_MODE: bool = false;

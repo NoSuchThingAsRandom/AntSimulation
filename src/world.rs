@@ -2,28 +2,31 @@ use crate::ant_settings::{
     DEBUG_MODE, DEFAULT_COLONY_SCOUT_SIZE, DEFAULT_COLONY_SPAWN_RATE, DEFAULT_COLONY_WORKER_SIZE,
     DEFAULT_RESOURCE_SIZE, MAXIMUM_PHEROMONE_STRENGTH, WORLD_HEIGHT, WORLD_WIDTH,
 };
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::ops::Deref;
 
 /// A struct containing every entity in the world
 ///
 /// All entities/objects are accessed through this
 pub struct World {
     /// A container all active food objects
-    pub food: BTreeMap<(u32, u32), Food>,
+    pub food: [[Option<Food>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+    pub food_lookup: Vec<Coordinates>,
     /// A container for all active colonies
-    colonies: Vec<Colony>,
+    pub colonies: Vec<Colony>,
     /// A container for all active pheromones (with their x/y positions)
-    pub pheromones: BTreeMap<(u32, u32), Pheromone>,
+    pub pheromones: [[Option<Pheromone>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+    pub pheromone_lookup: Vec<Coordinates>,
 }
 impl Default for World {
     fn default() -> Self {
         World {
-            food: BTreeMap::new(),
+            food: [[None; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+            food_lookup: Vec::new(),
             colonies: vec![],
-            pheromones: BTreeMap::new(),
+            pheromones: [[None; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+            pheromone_lookup: Vec::new(),
         }
     }
 }
@@ -35,11 +38,20 @@ impl World {
     /// * `food*` A vector with all food instances that should exist on creation
     /// * `colonies*` A vector with all colonies instances that should exist on creation
     ///
-    pub fn new(food: BTreeMap<(u32, u32), Food>, colonies: Vec<Colony>) -> World {
+    pub fn new(food: Vec<(Coordinates, Food)>, colonies: Vec<Colony>) -> World {
+        let mut food_container = [[None; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize];
+        let mut food_lookup = Vec::new();
+        for (coords, food_entry) in food {
+            food_container[coords.x_position as usize][coords.y_position as usize] =
+                Some(food_entry);
+            food_lookup.push(coords);
+        }
         World {
-            food,
+            food: food_container,
+            food_lookup,
             colonies,
-            pheromones: BTreeMap::new(),
+            pheromones: [[None; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+            pheromone_lookup: Vec::new(),
         }
     }
     /// Creates a new default colony, and adds it to the world
@@ -54,9 +66,29 @@ impl World {
     /// * Update the strength of pheromones and remove them if necessary
     pub fn update(&mut self) {
         for colony in &mut self.colonies {
-            colony.update(&mut self.food, &mut self.pheromones);
+            colony.update(
+                &mut self.food,
+                &mut self.pheromone_lookup,
+                &mut self.pheromones,
+            );
         }
-        self.display();
+        let mut test = self.pheromone_lookup.clone();
+        test.retain(|coords| {
+            let mut retain = true;
+            if let Some(pheromone) =
+                &mut self.pheromones[coords.x_position as usize][coords.y_position as usize]
+            {
+                if !pheromone.update() {
+                    retain = false;
+                }
+            }
+            if !retain {
+                self.pheromones[coords.x_position as usize][coords.y_position as usize] = None;
+            }
+            retain
+        });
+        self.pheromone_lookup = test;
+        //self.display();
     }
 
     /// Prints a grid of the world
@@ -69,21 +101,20 @@ impl World {
         for colony in &self.colonies {
             for (ant_type, ants) in &colony.ants {
                 for ant in ants {
-                    grid[ant.y_position as usize][ant.x_position as usize] = match ant_type {
-                        AntType::Scout => 'S',
-                        AntType::Worker => 'W',
-                    }
+                    grid[ant.position.y_position as usize][ant.position.x_position as usize] =
+                        match ant_type {
+                            AntType::Scout => 'S',
+                            AntType::Worker => 'W',
+                        }
                 }
             }
-            grid[colony.y_position as usize][colony.x_position as usize] = 'C';
+            grid[colony.position.y_position as usize][colony.position.x_position as usize] = 'C';
         }
-        for (position, _) in &self.food {
-            grid[position.1 as usize][position.0 as usize] = 'F';
+        for coords in &self.food_lookup {
+            grid[coords.x_position as usize][coords.y_position as usize] = 'F';
         }
         for line in grid {
-            for tile in line {
-                println!("{}", line.iter().collect::<String>());
-            }
+            println!("{}", line.iter().collect::<String>());
         }
     }
     pub fn stats(&self) {
@@ -100,9 +131,10 @@ impl World {
 
 /// This is a representation of a singular marker laid by ants
 /// Should be updated every tick, and the strength reduces by the depreciation rate
+#[derive(Copy, Clone)]
 pub struct Pheromone {
     /// The current strength of the pheromone. Should be less than equal to the MAXIMUM_PHEROMONE_STRENGTH
-    strength: u8,
+    pub(crate) strength: u8,
     /// How much to reduce the strength by, per time step. Should be less than or equal to the strength
     depreciation_rate: u8,
 }
@@ -110,8 +142,8 @@ pub struct Pheromone {
 impl Default for Pheromone {
     fn default() -> Self {
         Pheromone {
-            strength: 100,
-            depreciation_rate: 1,
+            strength: MAXIMUM_PHEROMONE_STRENGTH,
+            depreciation_rate: 2,
         }
     }
 }
@@ -193,13 +225,11 @@ impl Pheromone {
 ///
 /// Takes up one tile position
 pub struct Colony {
-    /// The x coordinate of the colony position
-    x_position: u32,
-    /// The y coordinate of the colony position
-    y_position: u32,
+    /// The coordinates of the colony position
+    pub(crate) position: Coordinates,
     /// Stores all ants, by their type
     // TODO Switch to a faster map
-    ants: HashMap<AntType, Vec<Ant>>,
+    pub(crate) ants: HashMap<AntType, Vec<Ant>>,
     /// The maximum number of ants that can be spawned per time step
     spawn_rate: u8,
 }
@@ -210,19 +240,19 @@ impl Default for Colony {
         ants.insert(AntType::Scout, Vec::new());
         ants.insert(AntType::Worker, Vec::new());
         Colony {
-            x_position: WORLD_WIDTH / 2,
-            y_position: WORLD_HEIGHT / 2,
-            ants: ants,
+            position: Coordinates::new(WORLD_WIDTH / 2, WORLD_HEIGHT / 2).unwrap(),
+            ants,
             spawn_rate: DEFAULT_COLONY_SPAWN_RATE,
         }
     }
 }
 impl Colony {
     /// Builds a new colony at the given position
-    pub fn new(x_position: u32, y_position: u32) -> Colony {
+    ///
+    /// Ant types have to be added manually
+    pub fn new(position: Coordinates) -> Colony {
         Colony {
-            x_position,
-            y_position,
+            position,
             ants: HashMap::new(),
             spawn_rate: DEFAULT_COLONY_SPAWN_RATE,
         }
@@ -252,8 +282,8 @@ impl Colony {
 
         // Counts the number of ants that are required, for each type
         for (ant_type, ants) in &self.ants {
-            let max_ants = ant_type.get_maximum_number_of_ants() as usize;
-            let required = max_ants - ants.len();
+            let max_ants = ant_type.get_maximum_number_of_ants() as u16;
+            let required = max_ants - ants.len() as u16;
             if DEBUG_MODE {
                 println!(
                     "Type: {} has maximum of {} and required: {}",
@@ -261,7 +291,7 @@ impl Colony {
                 );
             }
             if required > 0 {
-                ants_spawn.push((ant_type.clone(), required));
+                ants_spawn.push((*ant_type, required));
                 total_required_ants += required as u8;
             }
         }
@@ -271,24 +301,19 @@ impl Colony {
         }
         // Allocates and spawns the number of ants that can be spawned this turn, between the number of ants that are required per type
         for (ant_type, mut amount) in ants_spawn {
-            amount =
-                (amount as f64 * (self.spawn_rate as f64 / total_required_ants as f64)) as usize;
+            amount = (amount as f64 * (self.spawn_rate as f64 / total_required_ants as f64)) as u16;
             if DEBUG_MODE {
-                println!("Need to spawn: {} for type: {}", amount, ant_type);
+                println!(
+                    "Need to spawn: {} for type: {} at Position {}",
+                    amount, ant_type, self.position
+                );
             }
             let ant_container = self
                 .ants
                 .get_mut(&ant_type)
                 .unwrap_or_else(|| panic!("Failed to get ant type {}", ant_type));
             for _ in 0..amount {
-                if let Some(ant) = Ant::new(ant_type, self.x_position, self.y_position) {
-                    ant_container.push(ant);
-                } else {
-                    panic!(
-                        "Cannot spawn ant at {},{} ",
-                        self.x_position, self.y_position
-                    )
-                }
+                ant_container.push(Ant::new(ant_type, self.position));
             }
         }
     }
@@ -298,17 +323,19 @@ impl Colony {
     /// And updates the position of all the colonies ants
     pub fn update(
         &mut self,
-        food_map: &mut BTreeMap<(u32, u32), Food>,
-        pheromones_map: &mut BTreeMap<(u32, u32), Pheromone>,
+        food_map: &mut [[Option<Food>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+        pheromones_lookup: &mut Vec<Coordinates>,
+        pheromones_map: &mut [[Option<Pheromone>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
     ) {
         self.spawn_ants();
-        for (ant_type, ants) in self.ants.iter_mut() {
+        for (_, ants) in self.ants.iter_mut() {
             for ant in ants {
-                ant.update(food_map, pheromones_map);
+                ant.update(food_map, pheromones_lookup, pheromones_map);
             }
         }
     }
 }
+#[derive(Copy, Clone)]
 pub struct Food {
     resources_remaining: u8,
 }
@@ -332,56 +359,25 @@ impl Food {
 
 pub struct Ant {
     ant_type: AntType,
-    x_position: u32,
-    y_position: u32,
+    pub position: Coordinates,
 }
 
+const MOVE_POSSIBILITIES: [(i16, i16); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 impl Ant {
     /// Creates a new ant, with the given type and position, if it is inside the world boundary
     ///
     /// # Examples
     /// ```
     /// # use ant_lib::ant_settings::WORLD_WIDTH;
-    /// # use ant_lib::world::{Ant, AntType};
+    /// # use ant_lib::world::{Ant, AntType, Coordinates};
     ///
-    /// let x=5;
-    /// let y=5;
+    /// let position = Coordinates::new(0,5).unwrap();
     /// let ant_type=AntType::Scout;
     ///
-    /// let ant=Ant::new(ant_type,x,y);
-    /// # assert!(ant.is_some());
+    /// let ant = Ant::new(ant_type,position);
     /// ```
-    ///```
-    /// # // x value outside the borders of the world, should fail
-    /// # use ant_lib::world::{AntType, Ant};
-    /// # use ant_lib::ant_settings::WORLD_WIDTH;
-    ///
-    /// # let x=WORLD_WIDTH+1;
-    /// # let y=5;
-    /// # let ant_type=AntType::Scout;
-    ///
-    /// # assert!(Ant::new(ant_type,x,y).is_none());
-    ///```
-    /// ```
-    /// # //Y value outside the borders of the world, should fail
-    /// # use ant_lib::ant_settings::WORLD_HEIGHT;
-    /// # use ant_lib::world::{Ant, AntType};
-    ///
-    /// # let x=5;
-    /// # let y=WORLD_HEIGHT+1;
-    /// # let ant_type=AntType::Scout;
-    ///
-    /// # assert!(Ant::new(ant_type,x,y).is_none());
-    /// ```
-    pub fn new(ant_type: AntType, x_position: u32, y_position: u32) -> Option<Ant> {
-        if x_position > WORLD_WIDTH || y_position > WORLD_HEIGHT {
-            return None;
-        }
-        Some(Ant {
-            ant_type,
-            x_position,
-            y_position,
-        })
+    pub fn new(ant_type: AntType, position: Coordinates) -> Ant {
+        Ant { ant_type, position }
     }
     /// This will:
     /// * Move the ant
@@ -389,85 +385,98 @@ impl Ant {
     /// * Consume any available food
     pub fn update(
         &mut self,
-        food_map: &mut BTreeMap<(u32, u32), Food>,
-        pheromones_map: &mut BTreeMap<(u32, u32), Pheromone>,
+        food_map: &mut [[Option<Food>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+        pheromones_lookup: &mut Vec<Coordinates>,
+        pheromones_map: &mut [[Option<Pheromone>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
     ) {
-        // TODO Use pheromones to influence ant direction
-        let direction: f64 = rand::random();
-        let direction = (direction * 4.0) as u8;
-        match direction {
-            0 => self.move_ant(-1, 0),
-            1 => self.move_ant(1, 0),
-            2 => self.move_ant(0, 1),
-            3 => self.move_ant(0, -1),
-            _ => {}
-        }
+        self.move_ant(pheromones_map);
+
         // Update the strength of pheromones
-        if let Some(pheromone) = pheromones_map.get_mut(&(self.x_position, self.y_position)) {
+        if let Some(mut pheromone) =
+            &pheromones_map[self.position.x_position as usize][self.position.y_position as usize]
+        {
             pheromone.refresh(pheromone.strength);
         } else {
-            pheromones_map.insert((self.x_position, self.y_position), Pheromone::default());
+            pheromones_map[self.position.x_position as usize][self.position.y_position as usize] =
+                Some(Pheromone::default());
+            pheromones_lookup.push(self.position);
+            if DEBUG_MODE {
+                println!("New Pheromone at: {}", self.position)
+            }
         }
 
         // Consume food if it is available
-        if let Some(food) = food_map.get_mut(&(self.x_position, self.y_position)) {
+        if let Some(mut food) =
+            &food_map[self.position.x_position as usize][self.position.y_position as usize]
+        {
             if food.consume().is_none() {
-                food_map.remove(&(self.x_position, self.y_position));
+                food_map[self.position.x_position as usize][self.position.y_position as usize] =
+                    None;
             }
         }
     }
-    /// Will safely move the ant by the given amount, whilst staying in the world boundaries
-    /// (0..WORLD_WIDTH),(0..WORLD_HEIGHT)
-    pub fn move_ant(&mut self, x_distance: i32, y_distance: i32) {
-        // TODO When "if let Some(x) && x condition" is stable, change this
-        if x_distance.is_positive() {
-            let new_position = self.x_position.checked_add(x_distance as u32);
-            if let Some(position) = new_position {
-                if position < WORLD_WIDTH {
-                    self.x_position = position;
-                } else {
-                    self.x_position = WORLD_WIDTH - 1;
-                }
-            } else {
-                self.x_position = WORLD_WIDTH - 1;
-            }
-        } else {
-            let new_position = (self.x_position as i32).checked_sub(x_distance);
 
-            if let Some(position) = new_position {
-                if position > 0 {
-                    self.x_position = position as u32;
-                } else {
-                    self.x_position = 0;
+    /// Moves the ant, using one of the movement systems, dependant on the ant type and probability
+    ///
+    /// Ant Scout:
+    ///     25% Chance of following strongest pheromone
+    ///     75% Chance of randomly moving
+    ///
+    /// Ant Worker:
+    ///     75% Chance of following strongest pheromone
+    ///     25% Chance of randomly moving
+    fn move_ant(
+        &mut self,
+        pheromones_map: &[[Option<Pheromone>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+    ) {
+        // TODO Use pheromones to influence ant direction
+        println!("Old ant position: {}", self.position);
+        let random_chance: f64 = rand::random();
+        if random_chance > self.ant_type.get_randomness_chance() {
+            self.move_pheromones(pheromones_map);
+        } else {
+            self.move_random();
+        }
+        println!("Moved ant to position: {}", self.position)
+    }
+    /// Moves the ant in one of the possible directions given by: MOVE_POSSIBILITIES
+    fn move_random(&mut self) {
+        let direction: f64 = rand::random();
+        let direction = (direction * 4.0) as usize;
+        self.position = self.position.modify(
+            MOVE_POSSIBILITIES[direction].0,
+            MOVE_POSSIBILITIES[direction].1,
+        );
+    }
+    /// Moves the ant in the direction of the strongest pheromone (of the possible directions given by: MOVE_POSSIBILITIES)
+    ///
+    /// If there are no nearby pheromones then, moves in a random direction
+    fn move_pheromones(
+        &mut self,
+        pheromones_map: &[[Option<Pheromone>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+    ) {
+        let mut strongest_pheromone = 0;
+        let mut position = Coordinates::default();
+        for move_possibility in &MOVE_POSSIBILITIES {
+            let new_position = self.position.modify(move_possibility.0, move_possibility.1);
+            if let Some(pheromone) =
+                pheromones_map[new_position.x_position as usize][new_position.y_position as usize]
+            {
+                if pheromone.strength > strongest_pheromone {
+                    strongest_pheromone = pheromone.strength;
+                    position = new_position;
                 }
-            } else {
-                self.x_position = 0;
             }
         }
-        if y_distance.is_positive() {
-            let new_position = self.y_position.checked_add(y_distance as u32);
-            if let Some(position) = new_position {
-                if position < WORLD_WIDTH {
-                    self.y_position = position;
-                } else {
-                    self.y_position = WORLD_WIDTH - 1;
-                }
-            } else {
-                self.y_position = WORLD_WIDTH - 1;
-            }
-        } else {
-            let new_position = (self.y_position as i32).checked_sub(y_distance);
-
-            if let Some(position) = new_position {
-                if position > 0 {
-                    self.y_position = position as u32;
-                } else {
-                    self.y_position = 0;
-                }
-            } else {
-                self.y_position = 0;
-            }
+        if strongest_pheromone == 0 {
+            let direction: f64 = rand::random();
+            let direction = (direction * 4.0) as usize;
+            position = self.position.modify(
+                MOVE_POSSIBILITIES[direction].0,
+                MOVE_POSSIBILITIES[direction].1,
+            );
         }
+        self.position = position;
     }
 }
 
@@ -483,6 +492,13 @@ impl AntType {
             AntType::Worker => DEFAULT_COLONY_WORKER_SIZE,
         }
     }
+    /// Returns the probability of the given ant type moving in a random direction
+    fn get_randomness_chance(&self) -> f64 {
+        match self {
+            AntType::Scout => 0.75,
+            AntType::Worker => 0.1,
+        }
+    }
 }
 impl Display for AntType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -490,5 +506,65 @@ impl Display for AntType {
             AntType::Scout => write!(f, "Scout"),
             AntType::Worker => write!(f, "Worker"),
         }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Coordinates {
+    pub x_position: u16,
+    pub y_position: u16,
+}
+impl Default for Coordinates {
+    fn default() -> Self {
+        Coordinates {
+            x_position: 0,
+            y_position: 0,
+        }
+    }
+}
+impl Display for Coordinates {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.x_position, self.y_position)
+    }
+}
+impl Coordinates {
+    pub fn new(x_position: u16, y_position: u16) -> Option<Coordinates> {
+        if x_position > WORLD_WIDTH || y_position > WORLD_HEIGHT {
+            return None;
+        }
+        Some(Coordinates {
+            x_position,
+            y_position,
+        })
+    }
+    /// Will return the new ant coordinates after adjusting by the given amount, whilst staying in the world boundaries:
+    /// (0..WORLD_WIDTH),(0..WORLD_HEIGHT)
+    ///
+    /// # Returns
+    /// The new (x_position, y_position)
+    pub fn modify(&self, x_amount: i16, y_amount: i16) -> Coordinates {
+        let mut output = Coordinates::default();
+
+        let new_position = (self.x_position as i16)
+            .checked_add(x_amount)
+            .unwrap_or(WORLD_WIDTH as i16 - 1);
+        output.x_position = if new_position >= WORLD_WIDTH as i16 {
+            WORLD_WIDTH - 1
+        } else if new_position < 0 {
+            0
+        } else {
+            new_position as u16
+        };
+        let new_position = (self.y_position as i16)
+            .checked_add(y_amount)
+            .unwrap_or(WORLD_HEIGHT as i16 - 1);
+        output.y_position = if new_position >= WORLD_HEIGHT as i16 {
+            WORLD_HEIGHT - 1
+        } else if new_position < 0 {
+            0
+        } else {
+            new_position as u16
+        };
+        output
     }
 }
