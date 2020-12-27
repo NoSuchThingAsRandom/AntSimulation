@@ -1,8 +1,7 @@
-use crate::world::World;
+use crate::sim::world::World;
 
-pub mod Render;
 pub mod ant_settings;
-pub mod world;
+pub mod sim;
 
 pub fn main() {
     println!("Hello");

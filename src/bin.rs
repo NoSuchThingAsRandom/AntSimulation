@@ -1,6 +1,5 @@
-use crate::ant_lib::Render::Render;
-use ant_lib;
-use ant_lib::world::Coordinates;
+mod render;
+use ant_lib::sim::Coordinates;
 use ggez::{event, ContextBuilder};
 
 fn main() {
@@ -8,14 +7,14 @@ fn main() {
     let test = Coordinates::new(15, 16).unwrap();
     test.modify(0, 1);
     // Make a Context.
-    let (mut ctx, mut event_loop) = ContextBuilder::new("my_game", "Cool Game Author")
+    let (mut ctx, mut event_loop) = ContextBuilder::new("Ant Simulation", "Sam")
         .build()
-        .expect("aieee, could not create ggez context!");
+        .expect("Could not create ggez context!");
 
     // Create an instance of your event handler.
     // Usually, you should provide it with the Context object to
     // use when setting your game up.
-    let mut my_game = Render::new(&mut ctx);
+    let mut my_game = render::Render::new(&mut ctx);
 
     // Run!
     match event::run(&mut ctx, &mut event_loop, &mut my_game) {
