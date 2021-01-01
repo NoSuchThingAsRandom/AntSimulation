@@ -21,15 +21,15 @@ impl Resource {
     ///
     /// # Example
     /// ```
-    /// use Ants::sim::Resource;
+    /// use Ants::sim::resource::Resource;
     ///
-    /// let resource = Resource::default();
+    /// let mut resource = Resource::default();
     ///
     /// while let Some(amount) = resource.consume(){
     ///     println!("Amount: {}", amount);            
     /// }
     /// ```
-    pub(crate) fn consume(&mut self) -> Option<u8> {
+    pub fn consume(&mut self) -> Option<u8> {
         if let Some(resources) = self.resources_remaining.checked_sub(1) {
             self.resources_remaining = resources;
             Some(self.resources_remaining)

@@ -1,4 +1,4 @@
-use crate::ant_settings::{
+pub use crate::ant_settings::{
     DEBUG_MODE, DEFAULT_RESOURCE_SIZE, MAXIMUM_PHEROMONE_STRENGTH, WORLD_HEIGHT, WORLD_WIDTH,
 };
 use crate::sim::world::World;
@@ -18,7 +18,7 @@ pub struct Render {
 }
 impl Render {
     pub fn new(_ctx: &mut Context) -> Render {
-        let mut world = World::default();
+        let world = World::default();
         Render {
             world,
             game_ticks: 0,
@@ -28,7 +28,7 @@ impl Render {
 }
 impl EventHandler for Render {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
-        // Does a game tick every second
+        // Does a game tick every quarter second
         if Instant::now().duration_since(self.time_elapsed) > Duration::from_millis(250) {
             println!("\n\n-----\nTick {}\n----", self.game_ticks);
             if DEBUG_MODE {}
@@ -51,7 +51,7 @@ impl EventHandler for Render {
         )?;
         let mut sprite = SpriteBatch::new(img);
         // Draw Borders
-        /*        sprite.add(DrawParam::src(
+        sprite.add(DrawParam::src(
             DrawParam::default()
                 .color(Color::from_rgb(128, 128, 128))
                 .dest(Point2::new(0_f32, 0_f32)),
@@ -61,7 +61,7 @@ impl EventHandler for Render {
                 w: WORLD_WIDTH as f32,
                 h: WORLD_HEIGHT as f32,
             },
-        ));*/
+        ));
         // Draw Pheromones
         for (coords, pheromone_type) in &self.world.pheromone_lookup {
             if let Some(pheromone) = &self.world.pheromones[coords.get_x_position_usize()]
@@ -119,7 +119,7 @@ impl EventHandler for Render {
         }
         // Draw Resources
         for coords in &self.world.resource_lookup {
-            if let Some(resource) =
+            if let Some(_resource) =
                 &self.world.resources[coords.get_x_position_usize()][coords.get_y_position_usize()]
             {
                 sprite.add(DrawParam::src(

@@ -57,11 +57,11 @@ impl Coordinates {
     /// # use Ants::sim::Coordinates;
     /// # use Ants::ant_settings::{WORLD_WIDTH,WORLD_HEIGHT};
     ///
-    /// let position = Coordinates::new(WORLD_WIDTH + 1, WORLD_HEIGHT + 1);
+    /// let position = Coordinates::new(WORLD_WIDTH, WORLD_HEIGHT);
     /// assert!(position.is_none());
     /// ```
     pub fn new(x_position: u16, y_position: u16) -> Option<Coordinates> {
-        if x_position > WORLD_WIDTH || y_position > WORLD_HEIGHT {
+        if x_position >= WORLD_WIDTH || y_position >= WORLD_HEIGHT {
             return None;
         }
         Some(Coordinates {
@@ -78,8 +78,8 @@ impl Coordinates {
     ///
     /// let new_position = Coordinates::new_random();
     ///
-    /// assert!(new_position.get_x_position_u16() <= WORLD_WIDTH);
-    /// assert!(new_position.get_y_position_u16() <= WORLD_HEIGHT);
+    /// assert!(new_position.get_x_position_u16() < WORLD_WIDTH);
+    /// assert!(new_position.get_y_position_u16() < WORLD_HEIGHT);
     /// ```
     pub fn new_random() -> Coordinates {
         let x_position: u16 = ((rand::random::<f64>()) * (WORLD_WIDTH as f64)) as u16;
@@ -107,11 +107,11 @@ impl Coordinates {
     /// # use Ants::sim::Coordinates;
     /// # use Ants::ant_settings::{WORLD_WIDTH,WORLD_HEIGHT};
     ///
-    /// let position = Coordinates::new(WORLD_WIDTH, WORLD_HEIGHT).unwrap();
+    /// let position = Coordinates::new(WORLD_WIDTH - 1, WORLD_HEIGHT - 1).unwrap();
     /// let new_position = position.safe_modify(1, 1);
     ///
-    /// assert_eq!(new_position.get_x_position_u16(), WORLD_WIDTH);
-    /// assert_eq!(new_position.get_y_position_u16(), WORLD_HEIGHT);
+    /// assert_eq!(new_position.get_x_position_u16(), WORLD_WIDTH - 1);
+    /// assert_eq!(new_position.get_y_position_u16(), WORLD_HEIGHT - 1 );
     /// ```
     ///
     /// When less than the world boundaries
@@ -130,8 +130,8 @@ impl Coordinates {
         let new_position = (self.x_position as i32)
             .checked_add(x_amount)
             .unwrap_or(WORLD_WIDTH as i32);
-        output.x_position = if new_position > WORLD_WIDTH as i32 {
-            WORLD_WIDTH
+        output.x_position = if new_position >= WORLD_WIDTH as i32 {
+            WORLD_WIDTH - 1
         } else if new_position < 0 {
             0
         } else {
@@ -140,8 +140,8 @@ impl Coordinates {
         let new_position = (self.y_position as i32)
             .checked_add(y_amount)
             .unwrap_or(WORLD_HEIGHT as i32);
-        output.y_position = if new_position > WORLD_HEIGHT as i32 {
-            WORLD_HEIGHT
+        output.y_position = if new_position >= WORLD_HEIGHT as i32 {
+            WORLD_HEIGHT - 1
         } else if new_position < 0 {
             0
         } else {
@@ -169,7 +169,7 @@ impl Coordinates {
     /// # use Ants::sim::Coordinates;
     /// # use Ants::ant_settings::{WORLD_WIDTH,WORLD_HEIGHT};
     ///
-    /// let position = Coordinates::new(WORLD_WIDTH, WORLD_HEIGHT).unwrap();
+    /// let position = Coordinates::new(WORLD_WIDTH - 1, WORLD_HEIGHT - 1).unwrap();
     /// let new_position = position.modify(1, 1);
     ///
     /// assert!(new_position.is_none());

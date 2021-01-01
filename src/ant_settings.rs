@@ -11,7 +11,7 @@ pub const WORLD_HEIGHT: u16 = 64;
 /// The maximum strength that can be assigned to a pheromone
 pub const MAXIMUM_PHEROMONE_STRENGTH: u16 = 1000;
 /// The amount to increase a pheromone by, when walked over by another ant
-pub const DEFAULT_PHEROMONE_REINFORCEMENT_AMOUNT: u16 = 10;
+pub const DEFAULT_PHEROMONE_REFRESH_AMOUNT: u16 = 10;
 /// The default rate for exploration pheromones to dissipate
 pub const DEFAULT_EXPLORATION_PHEROMONE_DEPRECIATION_RATE: u16 = 5;
 /// The default rate for food pheromones to dissipate

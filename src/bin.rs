@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod ant_settings;
 mod render;
 mod sim;

@@ -88,26 +88,25 @@ impl Colony {
         for (ant_type, amount) in ants_spawn {
             let mut to_spawn = amount * (self.spawn_rate * 100) / total_required_ants;
             to_spawn /= 100;
-            to_spawn = to_spawn.max(amount);
             if DEBUG_MODE {
                 println!(
-                    "Need to spawn: {} for type: {} at Position {}",
-                    amount, ant_type, self.position
+                    "Spawning: {} for type: {} at Position {} with required: {}",
+                    to_spawn, ant_type, self.position, amount
                 );
             }
             let ant_container = self
                 .ants
                 .get_mut(&ant_type)
                 .unwrap_or_else(|| panic!("Failed to get ant type {}", ant_type));
-            for _ in 0..amount {
+            for _ in 0..to_spawn {
                 ant_container.push(Ant::new(ant_type, self.position, self.position));
             }
         }
     }
 
-    /// Spawns the maximum amount of ants it can this step
+    /// Spawns the maximum amount of ants it can for this time step
     ///
-    /// And updates the position of all the colonies ants
+    /// And updates the position of all the ants in this colony
     pub fn update(
         &mut self,
         food_map: &mut [[Option<Resource>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
@@ -116,6 +115,7 @@ impl Colony {
                  WORLD_WIDTH as usize],
     ) {
         self.spawn_ants();
+
         for (_, ants) in self.ants.iter_mut() {
             for ant in ants {
                 ant.update(food_map, pheromones_lookup, pheromones_map);
