@@ -1,10 +1,9 @@
-use crate::ant_settings::{
-    DEBUG_MODE, DEFAULT_COLONY_SPAWN_RATE, PHEROMONE_TYPES_COUNT, WORLD_HEIGHT, WORLD_WIDTH,
-};
+use crate::ant_settings::{DEBUG_MODE, DEFAULT_COLONY_SPAWN_RATE, WORLD_HEIGHT, WORLD_WIDTH};
 use crate::sim::ant::{Ant, AntType};
 use crate::sim::pheromone::{Pheromone, PheromoneType};
 use crate::sim::resource::Resource;
 use crate::sim::Coordinates;
+use enum_map::EnumMap;
 use std::collections::HashMap;
 
 /// A container for a group of ants
@@ -113,7 +112,7 @@ impl Colony {
         &mut self,
         food_map: &mut [[Option<Resource>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
         pheromones_lookup: &mut Vec<(Coordinates, PheromoneType)>,
-        pheromones_map: &mut [[[Option<Pheromone>; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize];
+        pheromones_map: &mut [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
                  WORLD_WIDTH as usize],
     ) {
         self.spawn_ants();

@@ -48,3 +48,12 @@ JSON or equivalent.
 * https://softologyblog.wordpress.com/2020/03/21/ant-colony-simulations/
 * https://itp.uni-frankfurt.de/~gros/StudentProjects/Applets_2014_AntsSimulation/ants.htm
 * https://users.csc.calpoly.edu/~zwood/teaching/csc570/final13/smarano/
+
+
+**Notes**
+
+Currently on works on rustc <=1.47.0, due to a bug with 1.48 and winit 0.19
+
+If necessary, to use newer versions of rustc then, ggez development branch can be used
+
+See: https://github.com/ggez/ggez/issues/843

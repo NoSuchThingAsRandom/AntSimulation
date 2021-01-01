@@ -1,24 +1,27 @@
-use crate::ant_settings::{
-    DEFAULT_RESOURCE_COUNT, PHEROMONE_TYPES_COUNT, WORLD_HEIGHT, WORLD_WIDTH,
-};
+extern crate enum_map;
+use crate::ant_settings::{DEFAULT_RESOURCE_COUNT, WORLD_HEIGHT, WORLD_WIDTH};
 use crate::sim::ant::AntType;
 use crate::sim::colony::Colony;
 use crate::sim::pheromone::{Pheromone, PheromoneType};
 use crate::sim::resource::Resource;
 use crate::sim::Coordinates;
+use enum_map::EnumMap;
 
 /// A struct containing every entity in the world
 ///
 /// All entities/objects are accessed through this
 pub struct World {
-    /// A container all active food objects
+    // TODO Find a more efficient memory solution, that is just as fast (without the cost of btmaps or hashmaps)
+    /// A container all active resources
     pub resources: [[Option<Resource>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+    /// Contains the coordinates for all active resource objects, for fast iteration
     pub resource_lookup: Vec<Coordinates>,
     /// A container for all active colonies
     pub colonies: Vec<Colony>,
-    /// A container for all active pheromones (with their x/y positions)
+    /// A container for all active pheromones
     pub pheromones:
-        [[[Option<Pheromone>; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+        [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+    /// Contains the coordinates for all active pheromones, for fast iteration
     pub pheromone_lookup: Vec<(Coordinates, PheromoneType)>,
 }
 impl Default for World {
@@ -27,8 +30,7 @@ impl Default for World {
             resources: [[None; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
             resource_lookup: Vec::new(),
             colonies: vec![],
-            pheromones: [[[None; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize];
-                WORLD_WIDTH as usize],
+            pheromones: [[EnumMap::new(); WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
             pheromone_lookup: Vec::new(),
         };
         world.new_colony();
@@ -58,8 +60,7 @@ impl World {
             resources: food_container,
             resource_lookup: food_lookup,
             colonies,
-            pheromones: [[[None; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize];
-                WORLD_WIDTH as usize],
+            pheromones: [[EnumMap::new(); WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
             pheromone_lookup: Vec::new(),
         }
     }
@@ -69,7 +70,7 @@ impl World {
     }
     /// Spawns a new resource at a random location
     ///
-    /// That is not occupied by another resource
+    /// Providing it is not occupied by another resource
     pub fn new_resource(&mut self) {
         let mut coords = Coordinates::new_random();
         while self.resources[coords.get_x_position_usize()][coords.get_y_position_usize()].is_some()
@@ -98,23 +99,20 @@ impl World {
         new_lookup.retain(|(coords, pheromone_type)| {
             let mut retain = true;
             if let Some(pheromones) = &mut self.pheromones[coords.x_position as usize]
-                [coords.y_position as usize][pheromone_type.as_pheromone_index()]
+                [coords.y_position as usize][*pheromone_type]
             {
                 retain = pheromones.update();
             }
             if !retain {
                 self.pheromones[coords.x_position as usize][coords.y_position as usize]
-                    [pheromone_type.as_pheromone_index()] = None;
+                    [*pheromone_type] = None;
             }
             retain
         });
         self.pheromone_lookup = new_lookup;
-        //self.display();
     }
 
     /// Prints a grid of the world
-    ///
-    /// With
     pub fn display(&self) {
         println!("\n\n-----------------------------------------------\n");
         self.stats();
@@ -138,6 +136,10 @@ impl World {
             println!("{}", line.iter().collect::<String>());
         }
     }
+    /// Prints some stats about the current world instance
+    ///
+    /// * Number of colonies
+    /// * Number of ants/per colony
     pub fn stats(&self) {
         println!("\n\n-----------------------------------------------\n");
         println!("    Number of Colonies: {}", self.colonies.len());

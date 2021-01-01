@@ -1,7 +1,7 @@
-use ant_lib::ant_settings::{
+use crate::ant_settings::{
     DEBUG_MODE, DEFAULT_RESOURCE_SIZE, MAXIMUM_PHEROMONE_STRENGTH, WORLD_HEIGHT, WORLD_WIDTH,
 };
-use ant_lib::sim::world::World;
+use crate::sim::world::World;
 use ggez::event::EventHandler;
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::graphics::{Color, DrawParam, Drawable, Image};
@@ -65,7 +65,7 @@ impl EventHandler for Render {
         // Draw Pheromones
         for (coords, pheromone_type) in &self.world.pheromone_lookup {
             if let Some(pheromone) = &self.world.pheromones[coords.get_x_position_usize()]
-                [coords.get_y_position_usize()][pheromone_type.as_pheromone_index()]
+                [coords.get_y_position_usize()][*pheromone_type]
             {
                 sprite.add(DrawParam::src(
                     DrawParam::default()

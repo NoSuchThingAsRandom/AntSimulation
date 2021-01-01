@@ -1,13 +1,14 @@
 use crate::ant_settings::{
     ANT_BACKWARDS_CHANCE, DEFAULT_COLONY_SCOUT_SIZE, DEFAULT_COLONY_WORKER_SIZE,
-    DEFAULT_MAX_ANT_STEPS, DEFAULT_TERRITORY_SIZE, PHEROMONE_TYPES_COUNT,
-    SCOUT_RETURN_PHEROMONE_CHANCE, WORKER_PHEROMONE_CHANCE, WORLD_HEIGHT, WORLD_WIDTH,
+    DEFAULT_MAX_ANT_STEPS, DEFAULT_TERRITORY_SIZE, SCOUT_RETURN_PHEROMONE_CHANCE,
+    WORKER_PHEROMONE_CHANCE, WORLD_HEIGHT, WORLD_WIDTH,
 };
 
 use crate::sim::ant::AntType::Scout;
 use crate::sim::pheromone::{Pheromone, PheromoneType};
 use crate::sim::resource::Resource;
 use crate::sim::Coordinates;
+use enum_map::EnumMap;
 use ggez::graphics::Color;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
@@ -24,7 +25,7 @@ pub struct Ant {
     distance_from_colony: u16,
 }
 
-const MOVE_POSSIBILITIES: [(i16, i16); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+const MOVE_POSSIBILITIES: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 impl Ant {
     /// Creates a new ant, with the given type and position, if it is inside the world boundary
     ///
@@ -58,7 +59,7 @@ impl Ant {
         &mut self,
         food_map: &mut [[Option<Resource>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
         pheromones_lookup: &mut Vec<(Coordinates, PheromoneType)>,
-        pheromones_map: &mut [[[Option<Pheromone>; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize];
+        pheromones_map: &mut [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
                  WORLD_WIDTH as usize],
     ) {
         self.steps_on_current_journey += 1;
@@ -83,7 +84,7 @@ impl Ant {
     fn update_pheromone(
         &self,
         pheromones_lookup: &mut Vec<(Coordinates, PheromoneType)>,
-        pheromones_map: &mut [[[Option<Pheromone>; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize];
+        pheromones_map: &mut [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
                  WORLD_WIDTH as usize],
     ) {
         let pheromone_type = if self.found_food {
@@ -96,12 +97,12 @@ impl Ant {
 
         // Attempts to reinforce the pheromone
         if let Some(pheromone) = &mut pheromones_map[self.position.x_position as usize]
-            [self.position.y_position as usize][pheromone_type.as_pheromone_index()]
+            [self.position.y_position as usize][pheromone_type]
         {
             pheromone.refresh(pheromone.strength);
         } else {
             pheromones_map[self.position.x_position as usize][self.position.y_position as usize]
-                [pheromone_type.as_pheromone_index()] = Some(Pheromone::default(pheromone_type));
+                [pheromone_type] = Some(Pheromone::default(pheromone_type));
             pheromones_lookup.push(((self.position), pheromone_type));
         }
     }
@@ -117,7 +118,7 @@ impl Ant {
     ///     25% Chance of randomly moving
     fn move_ant(
         &mut self,
-        pheromones_map: &[[[Option<Pheromone>; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize];
+        pheromones_map: &[[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
              WORLD_WIDTH as usize],
     ) {
         if self.position == self.colony_position {
@@ -169,7 +170,7 @@ impl Ant {
     fn move_random(&mut self) {
         let mut allow_backwards = rand::random::<f64>() > ANT_BACKWARDS_CHANCE;
         let mut new_position = None;
-        let mut moves = MOVE_POSSIBILITIES.clone();
+        let mut moves = MOVE_POSSIBILITIES;
         moves.shuffle(&mut thread_rng());
         for new_move in &moves {
             if let Some(test_position) = self.position.modify(new_move.0, new_move.1) {
@@ -198,12 +199,12 @@ impl Ant {
     /// If there are no nearby pheromones then, moves in a random direction
     fn move_pheromones(
         &mut self,
-        pheromones_map: &[[[Option<Pheromone>; PHEROMONE_TYPES_COUNT]; WORLD_HEIGHT as usize];
+        pheromones_map: &[[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
              WORLD_WIDTH as usize],
     ) {
         let mut strongest_pheromone = 0;
         let mut position = Coordinates::default();
-        let mut moves = MOVE_POSSIBILITIES.clone();
+        let mut moves = MOVE_POSSIBILITIES;
         moves.shuffle(&mut thread_rng());
         for move_possibility in &moves {
             let new_position = self
@@ -217,15 +218,14 @@ impl Ant {
                 &pheromones_map[new_position.x_position as usize][new_position.y_position as usize];
 
             if self.ant_type == Scout {
-                if let Some(pheromone) = pheromones[PheromoneType::Exploration.as_pheromone_index()]
-                {
+                if let Some(pheromone) = pheromones[PheromoneType::Exploration] {
                     if pheromone.strength > strongest_pheromone {
                         strongest_pheromone = pheromone.strength;
                         position = new_position;
                     }
                 }
             }
-            if let Some(pheromone) = &pheromones[PheromoneType::Resource.as_pheromone_index()] {
+            if let Some(pheromone) = &pheromones[PheromoneType::Resource] {
                 if pheromone.strength > strongest_pheromone {
                     strongest_pheromone = pheromone.strength;
                     position = new_position;
