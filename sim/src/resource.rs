@@ -21,7 +21,7 @@ impl Resource {
     ///
     /// # Example
     /// ```
-    /// use Ants::sim::resource::Resource;
+    /// use sim::resource::Resource;
     ///
     /// let mut resource = Resource::default();
     ///

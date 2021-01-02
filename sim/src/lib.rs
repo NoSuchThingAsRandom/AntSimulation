@@ -1,9 +1,10 @@
-use crate::ant_settings::{WORLD_HEIGHT, WORLD_WIDTH};
+use ant_settings::{WORLD_HEIGHT, WORLD_WIDTH};
 
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 
 pub mod ant;
+pub mod ant_settings;
 pub mod colony;
 pub mod pheromone;
 pub mod resource;
@@ -19,6 +20,7 @@ pub struct Coordinates {
     x_position: u16,
     y_position: u16,
 }
+
 impl Default for Coordinates {
     fn default() -> Self {
         Coordinates {
@@ -27,16 +29,19 @@ impl Default for Coordinates {
         }
     }
 }
+
 impl Display for Coordinates {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "({}, {})", self.x_position, self.y_position)
     }
 }
+
 impl Debug for Coordinates {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         std::fmt::Display::fmt(self, f)
     }
 }
+
 impl Coordinates {
     /// Attempts to create a new Coordinate with the given position, provided it is within the World boundaries
     /// # Examples
@@ -50,7 +55,7 @@ impl Coordinates {
     /// let position = position.unwrap();
     /// assert_eq!(position.get_x_position_u16(), 5);
     /// assert_eq!(position.get_y_position_u16(), 5);
-    /// ```    
+    /// ```
     ///
     /// When exceeding the world boundaries
     /// ```
@@ -100,7 +105,7 @@ impl Coordinates {
     ///
     /// assert_eq!(new_position.get_x_position_u16(), 3);
     /// assert_eq!(new_position.get_y_position_u16(), 12);
-    /// ```    
+    /// ```
     ///
     /// When exceeding the world boundaries
     /// ```
@@ -115,7 +120,7 @@ impl Coordinates {
     /// ```
     ///
     /// When less than the world boundaries
-    /// ```    
+    /// ```
     /// # use Ants::sim::Coordinates;
     ///
     /// let position = Coordinates::new(0, 0).unwrap();
@@ -162,7 +167,7 @@ impl Coordinates {
     /// let new_position = position.modify(-2, 7);
     ///
     /// assert!(new_position.is_some());
-    /// ```    
+    /// ```
     ///
     /// When exceeding the world boundaries
     /// ```
@@ -176,7 +181,7 @@ impl Coordinates {
     /// ```
     ///
     /// When less than the world boundaries
-    /// ```    
+    /// ```
     /// # use Ants::sim::Coordinates;
     ///
     /// let position = Coordinates::new(0, 0).unwrap();
@@ -184,24 +189,27 @@ impl Coordinates {
     ///
     /// assert!(new_position.is_none());
     /// ```
+    #[allow(clippy::if_same_then_else)]
     pub fn modify(&self, x_amount: i32, y_amount: i32) -> Option<Coordinates> {
         let mut output = Coordinates::default();
 
-        let new_position = (self.x_position as i32).checked_add(x_amount)?;
-        output.x_position = if new_position >= WORLD_WIDTH as i32 {
+        // Check x position is in bounds
+        let new_x_position = (self.x_position as i32).checked_add(x_amount)?;
+        output.x_position = if new_x_position >= WORLD_WIDTH as i32 {
             return None;
-        } else if new_position < 0 {
+        } else if new_x_position < 0 {
             return None;
         } else {
-            new_position as u16
+            new_x_position as u16
         };
-        let new_position = (self.y_position as i32).checked_add(y_amount)?;
-        output.y_position = if new_position >= WORLD_HEIGHT as i32 {
+        // Check y position is in bounds
+        let new_y_position = (self.y_position as i32).checked_add(y_amount)?;
+        output.y_position = if new_y_position >= WORLD_HEIGHT as i32 {
             return None;
-        } else if new_position < 0 {
+        } else if new_y_position < 0 {
             return None;
         } else {
-            new_position as u16
+            new_y_position as u16
         };
         Some(output)
     }

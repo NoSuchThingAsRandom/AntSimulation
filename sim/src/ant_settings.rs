@@ -3,9 +3,18 @@
 
 // World Settings
 /// The width of the world in "tiles"
-pub const WORLD_WIDTH: u16 = 64;
+/// # WARNING - Changing this value can invoke SLOW release compile times
+///
+/// See: https://github.com/rust-lang/rust/issues/80622
+///
+/// Avoid values between 32 and 75
+pub const WORLD_WIDTH: u16 = 16;
 /// The height of the world in "tiles"
-pub const WORLD_HEIGHT: u16 = 64;
+/// # WARNING - Changing this value can invoke SLOW release compile times
+///
+/// See: https://github.com/rust-lang/rust/issues/80622
+/// Avoid values between 32 and 75
+pub const WORLD_HEIGHT: u16 = 16;
 
 // Pheromones
 /// The maximum strength that can be assigned to a pheromone
@@ -32,6 +41,8 @@ pub const DEFAULT_COLONY_WORKER_SIZE: u16 = 10;
 pub const DEFAULT_COLONY_SPAWN_RATE: u16 = 2;
 /// How many tiles around the colony are
 pub const DEFAULT_TERRITORY_SIZE: u16 = 0;
+/// The amount of steps a scout will take, before returning to the nest
+pub const DEFAULT_MAX_ANT_STEPS: u16 = 1000;
 
 // Resource
 /// The default size of resources
@@ -39,7 +50,5 @@ pub const DEFAULT_RESOURCE_SIZE: u8 = 20;
 /// The amount of individual resource locations to spawn
 pub const DEFAULT_RESOURCE_COUNT: u8 = 5;
 
-/// The amount of steps a scout will take, before returning to the nest
-pub const DEFAULT_MAX_ANT_STEPS: u16 = 1000;
 
 pub const DEBUG_MODE: bool = false;

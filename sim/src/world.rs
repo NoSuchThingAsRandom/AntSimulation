@@ -1,10 +1,11 @@
 extern crate enum_map;
+
+use crate::ant::AntType;
 use crate::ant_settings::{DEFAULT_RESOURCE_COUNT, WORLD_HEIGHT, WORLD_WIDTH};
-use crate::sim::ant::AntType;
-use crate::sim::colony::Colony;
-use crate::sim::pheromone::{Pheromone, PheromoneType};
-use crate::sim::resource::Resource;
-use crate::sim::Coordinates;
+use crate::colony::Colony;
+use crate::pheromone::{Pheromone, PheromoneType};
+use crate::resource::Resource;
+use crate::Coordinates;
 use enum_map::EnumMap;
 
 /// A struct containing every entity in the world
@@ -20,16 +21,23 @@ pub struct World {
     pub colonies: Vec<Colony>,
     /// A container for all active pheromones
     pub pheromones:
-        [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
+    [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
     /// Contains the coordinates for all active pheromones, for fast iteration
     pub pheromone_lookup: Vec<(Coordinates, PheromoneType)>,
 }
+
 impl Default for World {
     fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl World {
+    pub fn new() -> World {
         let mut world = World {
             resources: [[None; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
             resource_lookup: Vec::new(),
-            colonies: vec![],
+            colonies: Vec::new(),
             pheromones: [[EnumMap::new(); WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
             pheromone_lookup: Vec::new(),
         };
@@ -39,16 +47,14 @@ impl Default for World {
         }
         world
     }
-}
 
-impl World {
     /// Creates a new World instance with the supplied arguments
     ///
     /// # Arguments
     /// * `food*` A vector with all food instances that should exist on creation
     /// * `colonies*` A vector with all colonies instances that should exist on creation
     ///
-    pub fn new(food: Vec<(Coordinates, Resource)>, colonies: Vec<Colony>) -> World {
+    pub fn new_with_data(food: Vec<(Coordinates, Resource)>, colonies: Vec<Colony>) -> World {
         let mut food_container = [[None; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize];
         let mut food_lookup = Vec::new();
         for (coords, food_entry) in food {

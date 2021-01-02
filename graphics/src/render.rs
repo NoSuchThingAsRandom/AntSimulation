@@ -1,13 +1,14 @@
-pub use crate::ant_settings::{
+pub use sim::ant_settings::{
     DEBUG_MODE, DEFAULT_RESOURCE_SIZE, MAXIMUM_PHEROMONE_STRENGTH, WORLD_HEIGHT, WORLD_WIDTH,
 };
-use crate::sim::world::World;
+use sim::world::World;
 use ggez::event::EventHandler;
 use ggez::graphics::spritebatch::SpriteBatch;
 use ggez::graphics::{Color, DrawParam, Drawable, Image};
 use ggez::nalgebra::Point2;
 use ggez::{graphics, Context, GameResult};
 use std::time::{Duration, Instant};
+use crate::colors::{get_ant_color,get_pheromone_color};
 
 /// This is the size of each individual tile in pixels
 const TILE_SIZE: u16 = 8;
@@ -18,7 +19,7 @@ pub struct Render {
 }
 impl Render {
     pub fn new(_ctx: &mut Context) -> Render {
-        let world = World::default();
+        let world = World::new();
         Render {
             world,
             game_ticks: 0,
@@ -69,7 +70,7 @@ impl EventHandler for Render {
             {
                 sprite.add(DrawParam::src(
                     DrawParam::default()
-                        .color(pheromone.get_colour())
+                        .color(get_pheromone_color(pheromone))
                         .dest(Point2::new(
                             TILE_SIZE as f32 * (coords.get_x_position_u16()) as f32,
                             TILE_SIZE as f32 * (coords.get_y_position_u16()) as f32,
@@ -86,7 +87,7 @@ impl EventHandler for Render {
         // Draw Ants
         for colony in &self.world.colonies {
             for (ant_type, ants) in colony.iter_ants() {
-                let colour = ant_type.get_render_color();
+                let colour = get_ant_color(ant_type);
                 for ant in ants {
                     sprite.add(DrawParam::src(
                         DrawParam::default().color(colour).dest(Point2::new(

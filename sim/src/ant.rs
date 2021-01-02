@@ -1,15 +1,10 @@
-use crate::ant_settings::{
-    ANT_BACKWARDS_CHANCE, DEFAULT_COLONY_SCOUT_SIZE, DEFAULT_COLONY_WORKER_SIZE,
-    DEFAULT_MAX_ANT_STEPS, DEFAULT_PHEROMONE_REFRESH_AMOUNT, DEFAULT_TERRITORY_SIZE,
-    SCOUT_RETURN_PHEROMONE_CHANCE, WORKER_PHEROMONE_CHANCE, WORLD_HEIGHT, WORLD_WIDTH,
-};
+use crate::ant_settings::{ANT_BACKWARDS_CHANCE, DEFAULT_COLONY_SCOUT_SIZE, DEFAULT_COLONY_WORKER_SIZE, DEFAULT_MAX_ANT_STEPS, DEFAULT_PHEROMONE_REFRESH_AMOUNT, DEFAULT_TERRITORY_SIZE, SCOUT_RETURN_PHEROMONE_CHANCE, WORKER_PHEROMONE_CHANCE, WORLD_HEIGHT, WORLD_WIDTH, DEBUG_MODE};
 
-use crate::sim::ant::AntType::Scout;
-use crate::sim::pheromone::{Pheromone, PheromoneType};
-use crate::sim::resource::Resource;
-use crate::sim::Coordinates;
+use crate::ant::AntType::Scout;
 use enum_map::EnumMap;
-use ggez::graphics::Color;
+use crate::pheromone::{Pheromone, PheromoneType};
+use crate::resource::Resource;
+use crate::Coordinates;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use std::fmt;
@@ -24,16 +19,18 @@ pub struct Ant {
     found_food: bool,
     distance_from_colony: u16,
 }
+
 /// All possible directions that an ant can move in
 const MOVE_POSSIBILITIES: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
 impl Ant {
     /// Creates a new ant, with the given type and position
     ///
     /// # Examples
     /// ```
-    /// # use Ants::ant_settings::WORLD_WIDTH;
-    /// # use Ants::sim::ant::{Ant, AntType};
-    /// # use Ants::sim::Coordinates;
+    /// # use sim::ant_settings::WORLD_WIDTH;
+    /// # use sim::ant::{Ant, AntType};
+    /// # use sim::Coordinates;
     ///
     /// let colony_position = Coordinates::new(0, 5).unwrap();
     /// let position = Coordinates::new(0, 5).unwrap();
@@ -62,12 +59,12 @@ impl Ant {
         food_map: &mut [[Option<Resource>; WORLD_HEIGHT as usize]; WORLD_WIDTH as usize],
         pheromones_lookup: &mut Vec<(Coordinates, PheromoneType)>,
         pheromones_map: &mut [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
-                 WORLD_WIDTH as usize],
+            WORLD_WIDTH as usize],
     ) {
         self.steps_on_current_journey += 1;
         // Consume food if it is available
         if let Some(mut food) =
-            &food_map[self.position.x_position as usize][self.position.y_position as usize]
+        &food_map[self.position.x_position as usize][self.position.y_position as usize]
         {
             self.is_returning_to_colony = true;
             self.found_food = true;
@@ -87,7 +84,7 @@ impl Ant {
         &self,
         pheromones_lookup: &mut Vec<(Coordinates, PheromoneType)>,
         pheromones_map: &mut [[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
-                 WORLD_WIDTH as usize],
+            WORLD_WIDTH as usize],
     ) {
         // Determine the pheromone type
         let pheromone_type = if self.found_food {
@@ -116,7 +113,7 @@ impl Ant {
     fn move_ant(
         &mut self,
         pheromones_map: &[[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
-             WORLD_WIDTH as usize],
+            WORLD_WIDTH as usize],
     ) {
         // Reset if at the colony
         if self.position == self.colony_position {
@@ -206,7 +203,7 @@ impl Ant {
     fn move_using_pheromones(
         &mut self,
         pheromones_map: &[[EnumMap<PheromoneType, Option<Pheromone>>; WORLD_HEIGHT as usize];
-             WORLD_WIDTH as usize],
+            WORLD_WIDTH as usize],
     ) {
         let mut strongest_pheromone = 0;
         let mut position = Coordinates::default();
@@ -243,7 +240,7 @@ impl Ant {
             self.move_using_random();
             return;
         }
-        if self.found_food {
+        if self.found_food && DEBUG_MODE {
             println!(
                 "Moving from {} to {} is_correct {} ",
                 self.position,
@@ -273,15 +270,8 @@ impl AntType {
             AntType::Worker => DEFAULT_COLONY_WORKER_SIZE,
         }
     }
-
-    /// Returns the colour to render the given Ant Type as
-    pub fn get_render_color(&self) -> Color {
-        match self {
-            AntType::Scout => Color::from_rgb(0, 0, 255),
-            AntType::Worker => Color::from_rgb(50, 190, 190),
-        }
-    }
 }
+
 impl Display for AntType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {

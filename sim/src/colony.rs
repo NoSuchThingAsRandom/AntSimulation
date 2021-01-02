@@ -1,8 +1,10 @@
-use crate::ant_settings::{DEBUG_MODE, DEFAULT_COLONY_SPAWN_RATE, WORLD_HEIGHT, WORLD_WIDTH};
-use crate::sim::ant::{Ant, AntType};
-use crate::sim::pheromone::{Pheromone, PheromoneType};
-use crate::sim::resource::Resource;
-use crate::sim::Coordinates;
+use crate::ant::{Ant, AntType};
+use crate::ant_settings::{
+    DEBUG_MODE, DEFAULT_COLONY_SPAWN_RATE, WORLD_HEIGHT, WORLD_WIDTH,
+};
+use crate::pheromone::{Pheromone, PheromoneType};
+use crate::resource::Resource;
+use crate::Coordinates;
 use enum_map::EnumMap;
 use std::collections::HashMap;
 
@@ -43,23 +45,6 @@ impl Colony {
         }
     }
     /// Spawns the maximum amount of ants that are allowed each turn
-    ///
-    /// Will evenly distribute the type of ants, by the amount of ants missing per type
-    ///
-    /// For example:
-    ///     If the maximum number of ants per type is:
-    ///         50 Scouts and 100 Workers
-    ///     
-    ///     And the colony currently has 10 Scouts and 50 Workers
-    ///     Then:
-    ///         50 - 10 = 40 Scouts are required
-    ///         100 -50 = 50 Workers are required
-    ///         40+50 = 90 is the total number of required ants
-    ///
-    ///     But say we can only spawn 20 ants per time step
-    ///     Then:
-    ///         40*(20/90) = 8.88 = 8 Scouts are spawned
-    ///         50*(20/90) = 1.11 = 11 Workers are spawned
     ///
     fn spawn_ants(&mut self) {
         let mut total_required_ants = 0;

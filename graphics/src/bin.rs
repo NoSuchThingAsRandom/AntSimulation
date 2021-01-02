@@ -1,9 +1,6 @@
-#![allow(dead_code)]
-mod ant_settings;
-mod render;
-mod sim;
 use ggez::{event, ContextBuilder};
-
+mod colors;
+mod render;
 fn main() {
     // GGEZ Context
     let (mut ctx, mut event_loop) = ContextBuilder::new("Ant Simulation", "Sam")
