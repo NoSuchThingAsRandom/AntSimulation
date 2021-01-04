@@ -2,7 +2,10 @@ A simplistic attempt, at modelling ant movements and exploration.
 
 Uses the ggez library for rendering
 
-**Execution**
+To run the sim, download the repositry, cargo and rust stable 1.47.
+Then inside the Render directory, execute the command, "cargo run --release"
+
+**Simulator Logic**
 
 * Every time step calls an update to the World instance.
 * Which then calls update on every colony.
@@ -29,11 +32,11 @@ Uses the ggez library for rendering
 
 **Code Structure**
 
-All rendering logic takes place in the render.rs file
+All rendering logic takes place in the render crate file
 
-The sim module is responsible for the actual updating of state
+The sim crate is responsible for the actual updating of state
 
-The ant_settings.rs file is currently where all global defaults are defined. A future iteration would move this to a
+The ant_settings.rs file in the sim crate is currently where all global defaults are defined. A future iteration would move this to a
 JSON or equivalent.
 
 **Glossary**
@@ -57,3 +60,6 @@ Currently on works on rustc <=1.47.0, due to a bug with 1.48 and winit 0.19
 If necessary, to use newer versions of rustc then, ggez development branch can be used
 
 See: https://github.com/ggez/ggez/issues/843
+
+Also world size between 32 and 75 take a significantly long time to compile (on release mode), due to some optimisation issues with the compiler
+See: https://github.com/rust-lang/rust/issues/80622
